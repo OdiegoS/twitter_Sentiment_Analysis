@@ -1,24 +1,26 @@
 # -*- coding: utf-8 -*
 
+import os
 import re 
 import tweepy 
 from tweepy import OAuthHandler 
 from textblob import TextBlob 
+
+# keys and tokens from the Twitter Dev Console
+consumer_key = ''
+consumer_secret = ''
+access_token = ''
+access_token_secret = ''
 
 class TwitterClient(object): 
 	''' 
 	Generic Twitter Class for sentiment analysis. 
 	'''
 	def __init__(self): 
+		global consumer_key, consumer_secret, access_token, access_token_secret
 		''' 
 		Class constructor or initialization method. 
 		'''
-		# keys and tokens from the Twitter Dev Console 
-		consumer_key = ''
-		consumer_secret = ''
-		access_token = ''
-		access_token_secret = ''
-
 		# attempt authentication 
 		try: 
 			# create OAuthHandler object 
@@ -115,7 +117,19 @@ def main():
 	for tweet in ntweets[:10]: 
 		print(tweet['text']) 
 
+def get_keys():
+	global consumer_key, consumer_secret, access_token, access_token_secret
+
+	current_directory = os.path.dirname(os.path.realpath(__file__))
+	keys_file = open(current_directory + "\TwitterApi_Key.txt",'r')
+	linhas_file = keys_file.read().splitlines()
+	
+	consumer_key = linhas_file[0]
+	consumer_secret = linhas_file[1]
+	access_token = linhas_file[2]
+	access_token_secret = linhas_file[3]
+
 if __name__ == "__main__": 
-	# calling main function 
-    print("Iniciou...")
+	# calling main function
+    get_keys()
     main() 
