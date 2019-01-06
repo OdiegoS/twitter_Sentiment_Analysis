@@ -6,6 +6,8 @@ import tweepy
 from tweepy import OAuthHandler 
 from textblob import TextBlob 
 
+str_query = 'Donald Trump'
+qt_tweets = 500
 # keys and tokens from the Twitter Dev Console
 consumer_key = ''
 consumer_secret = ''
@@ -54,34 +56,40 @@ class TwitterClient(object):
 		else: 
 			return 'negative'
 
-	def get_tweets(self, query, count = 10): 
+	def get_tweets(self, query, qt_tweets = 10): 
 		''' 
 		Main function to fetch tweets and parse them. 
 		'''
 		# empty list to store parsed tweets 
 		tweets = [] 
+		last_id = -1
+		try:
+			while len(tweets) <= qt_tweets:
+				count = (qt_tweets - len(tweets)) if (qt_tweets - len(tweets)) < 100 else 100
+				# call twitter api to fetch tweets 
+				fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+				
+				if not fetched_tweets:
+					break
+				last_id = fetched_tweets[-1].id
 
-		try: 
-			# call twitter api to fetch tweets 
-			fetched_tweets = self.api.search(q = query, count = count) 
+				# parsing tweets one by one 
+				for tweet in fetched_tweets: 
+					# empty dictionary to store required params of a tweet 
+					parsed_tweet = {} 
 
-			# parsing tweets one by one 
-			for tweet in fetched_tweets: 
-				# empty dictionary to store required params of a tweet 
-				parsed_tweet = {} 
+					# saving text of tweet 
+					parsed_tweet['text'] = tweet.text 
+					# saving sentiment of tweet 
+					parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
 
-				# saving text of tweet 
-				parsed_tweet['text'] = tweet.text 
-				# saving sentiment of tweet 
-				parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
-
-				# appending parsed tweet to tweets list 
-				if tweet.retweet_count > 0: 
-					# if tweet has retweets, ensure that it is appended only once 
-					if parsed_tweet not in tweets: 
+					# appending parsed tweet to tweets list 
+					if tweet.retweet_count > 0: 
+						# if tweet has retweets, ensure that it is appended only once 
+						if parsed_tweet not in tweets: 
+							tweets.append(parsed_tweet) 
+					else: 
 						tweets.append(parsed_tweet) 
-				else: 
-					tweets.append(parsed_tweet) 
 
 			# return parsed tweets 
 			return tweets 
@@ -94,7 +102,7 @@ def main():
 	# creating object of TwitterClient Class 
 	api = TwitterClient() 
 	# calling function to get tweets 
-	tweets = api.get_tweets(query = 'Donald Trump', count = 200) 
+	tweets = api.get_tweets(query = str_query, qt_tweets = qt_tweets) 
 
 	# picking positive tweets from tweets 
 	ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive'] 
