@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*
 
 import os
+import time
 import re 
 import tweepy 
 from tweepy import OAuthHandler 
 from textblob import TextBlob 
 
 str_query = 'Donald Trump'
-qt_tweets = 500
+qt_tweets = 100
 # keys and tokens from the Twitter Dev Console
 consumer_key = ''
 consumer_secret = ''
@@ -140,4 +141,9 @@ def get_keys():
 if __name__ == "__main__": 
 	# calling main function
     get_keys()
+    start = time.time()
     main() 
+    end = time.time()
+    print("#######")
+    print("A aplicação demorou {} segundos para tratar {} tweets".format(end - start, qt_tweets))
+    print("#######")
