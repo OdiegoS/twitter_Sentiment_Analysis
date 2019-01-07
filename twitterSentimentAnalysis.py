@@ -130,8 +130,7 @@ def get_keys():
 	global consumer_key, consumer_secret, access_token, access_token_secret
 
 	current_directory = os.path.dirname(os.path.realpath(__file__))
-	keys_file = open(current_directory + "TwitterApi_Key.txt",'r') #linux
-	#keys_file = open(current_directory + "\TwitterApi_Key.txt",'r') #win
+	keys_file = open(current_directory + "/TwitterApi_Key.txt",'r')
 	linhas_file = keys_file.read().splitlines()
 	
 	consumer_key = linhas_file[0]
