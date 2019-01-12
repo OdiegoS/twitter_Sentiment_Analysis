@@ -17,11 +17,13 @@ from textblob import TextBlob
 #################################################
 control = "N" # T thread , P processo, N normal
 str_query = 'Donald Trump'
-qt_tweets = 1000
-n_multi = 1
+qt_tweets = 10
+n_multi = 2
 #################################################
 qt_multi = qt_tweets / n_multi
-tweets = []
+
+if(control == 'T'):
+    var_lock = threading.Lock()
 
 # keys and tokens from the Twitter Dev Console
 consumer_key = ''
@@ -72,16 +74,15 @@ class TwitterClient(object):
         else: 
             return 'negative'
             
-    def get_tweets(self, query, qt_tweets):
-        global tweets
+    def get_tweetsNormal(self, query, qt_tweets):
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
 		# empty list to store parsed tweets
-        #tweets = []
+        tweets = []
         last_id = -1
         try:
-            while len(tweets) <= qt_tweets:
+            while len(tweets) < qt_tweets:
                 count = (qt_tweets - len(tweets)) if (qt_tweets - len(tweets)) < 100 else 100
 				# call twitter api to fetch tweets
                 fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
@@ -105,47 +106,246 @@ class TwitterClient(object):
 						# if tweet has retweets, ensure that it is appended only once
                         if parsed_tweet not in tweets:
                             tweets.append(parsed_tweet) 
-                        else:
-                            tweets.append(parsed_tweet) 
+                    else:
+                        tweets.append(parsed_tweet) 
 
 			# return parsed tweets
-            return tweets 
+            return tweets
+        except tweepy.TweepError as e: 
+			# print error (if any)
+            print("Error : " + str(e)) 
+            
+    #Com lock: uma mesma lista para todas as threads, cada thread irá colocar seus resultados direto na lista principal
+    #com isso não é necessário dividir uma quantidade para cada thread.
+    def get_tweetsThread(self, query, qt_tweets, tweetsTemp):
+        global var_lock
+        ''' 
+		Main function to fetch tweets and parse them. 
+		'''
+        last_id = -1
+        try:
+            while len(tweetsTemp) < qt_tweets:
+                count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
+                # call twitter api to fetch tweets
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+                
+                if not fetched_tweets:
+                    break
+                last_id = fetched_tweets[-1].id
+                # parsing tweets one by one
+                for tweet in fetched_tweets: 
+					# empty dictionary to store required params of a tweet
+                    parsed_tweet = {} 
+
+					# saving text of tweet
+                    parsed_tweet['text'] = tweet.text 
+					# saving sentiment of tweet
+                    parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
+
+					# appending parsed tweet to tweets list
+                    if tweet.retweet_count > 0: 
+                        # if tweet has retweets, ensure that it is appended only once
+                        if parsed_tweet not in tweetsTemp:
+                            var_lock.acquire()
+                            tweetsTemp.append(parsed_tweet) 
+                            var_lock.release()
+                    else:
+                        var_lock.acquire()
+                        tweetsTemp.append(parsed_tweet) 
+                        var_lock.release()            
 
         except tweepy.TweepError as e: 
 			# print error (if any)
             print("Error : " + str(e)) 
 
-def teste(api, str_query, qt_tweets, tweets):
-    api.get_tweets(str_query, qt_tweets, tweets) 
+    #Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária e ao final
+    #adquire o lock para jogar na lista principal de uma só vez
+    def get_tweetsThread2(self, query, qt_tweets, tweets):
+        global var_lock
+        ''' 
+		Main function to fetch tweets and parse them. 
+		'''
+		# empty list to store parsed tweets
+        tweetsTemp = []
+        last_id = -1
+        try:
+            while len(tweetsTemp) < qt_tweets:
+                count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
+                # call twitter api to fetch tweets
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+                
+                if not fetched_tweets:
+                    break
+                last_id = fetched_tweets[-1].id
+                # parsing tweets one by one
+                for tweet in fetched_tweets: 
+					# empty dictionary to store required params of a tweet
+                    parsed_tweet = {} 
+
+					# saving text of tweet
+                    parsed_tweet['text'] = tweet.text 
+					# saving sentiment of tweet
+                    parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
+
+					# appending parsed tweet to tweets list
+                    if tweet.retweet_count > 0: 
+                        # if tweet has retweets, ensure that it is appended only once
+                        if parsed_tweet not in tweetsTemp:
+                            tweetsTemp.append(parsed_tweet) 
+
+                    else:
+                        tweetsTemp.append(parsed_tweet) 
+
+            var_lock.acquire()
+            tweets.extend(tweetsTemp)
+            var_lock.release()
+
+        except tweepy.TweepError as e: 
+			# print error (if any)
+            print("Error : " + str(e)) 
+
+    # Sem lock, cada thread tem sua própria lista
+    def get_tweetsThread3(self, query, qt_tweets, tweetsTemp):
+        ''' 
+		Main function to fetch tweets and parse them. 
+		'''
+        last_id = -1
+        try:
+            while len(tweetsTemp) < qt_tweets:
+                count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
+                # call twitter api to fetch tweets
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+                
+                if not fetched_tweets:
+                    break
+                last_id = fetched_tweets[-1].id
+                # parsing tweets one by one
+                for tweet in fetched_tweets: 
+					# empty dictionary to store required params of a tweet
+                    parsed_tweet = {} 
+
+					# saving text of tweet
+                    parsed_tweet['text'] = tweet.text 
+					# saving sentiment of tweet
+                    parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
+
+					# appending parsed tweet to tweets list
+                    if tweet.retweet_count > 0: 
+                        # if tweet has retweets, ensure that it is appended only once
+                        if parsed_tweet not in tweetsTemp:
+                            tweetsTemp.append(parsed_tweet) 
+                    else:
+                        tweetsTemp.append(parsed_tweet) 
+
+        except tweepy.TweepError as e: 
+			# print error (if any)
+            print("Error : " + str(e)) 
+
+    # Utiliza FIFO com sincronização (Queue), todos os processos inserem na mesma fila
+    # ao fim das execuções dos processos a FIFO é transformada em uma lista
+    def get_tweetsProcess(self, query, qt_tweets, queue):
+        ''' 
+		Main function to fetch tweets and parse them. 
+		'''
+        tweetsTemp = []
+        last_id = -1
+        try:
+            while len(tweetsTemp) < qt_tweets:
+                count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
+                # call twitter api to fetch tweets
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+                
+                if not fetched_tweets:
+                    break
+                last_id = fetched_tweets[-1].id
+                # parsing tweets one by one
+                for tweet in fetched_tweets: 
+					# empty dictionary to store required params of a tweet
+                    parsed_tweet = {} 
+
+					# saving text of tweet
+                    parsed_tweet['text'] = tweet.text 
+					# saving sentiment of tweet
+                    parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
+
+					# appending parsed tweet to tweets list
+                    if tweet.retweet_count > 0: 
+                        # if tweet has retweets, ensure that it is appended only once
+                        if parsed_tweet not in tweetsTemp:
+                            tweetsTemp.append(parsed_tweet)
+                            queue.put(parsed_tweet)
+                    else:
+                        tweetsTemp.append(parsed_tweet)
+                        queue.put(parsed_tweet)
+                    
+        except tweepy.TweepError as e: 
+			# print error (if any)
+            print("Error : " + str(e)) 
 
 def main(): 
-    global tweets
     # creating object of TwitterClient Class 
     api = TwitterClient()
+    tweets = []
     
     if( control == 'N'):
-        print("Normal")
-        # calling function to get tweets
-        tweets = api.get_tweets(str_query, qt_tweets) 
+        print("Execução Normal")
+        start = time.time()
+        tweets = api.get_tweetsNormal(str_query, qt_tweets) 
     else:
         multi = []
-        retornos = [[] for i in range(n_multi)]
     
         if control == 'T':
-            print("Thread")
+            print("Execução utilizando Threads")
+
+            ''' Usar apenas se for usar o get_tweetsThread3 '''
+            #retornos = [[] for i in range(n_multi)]
+
+            start = time.time()
             for i in range(0,n_multi):
-                multi.append(threading.Thread(target=api.get_tweets, args = (str_query, qt_multi)))
+                ''' Com lock: uma mesma lista para todas as threads, cada thread irá colocar seus resultados
+                        direto na lista principal  com isso não é necessário dividir uma quantidade para cada thread. '''
+                multi.append(threading.Thread(target=api.get_tweetsThread, args = (str_query, qt_tweets, tweets)))
+
+                ''' Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária
+                        e ao final adquire o lock para jogar na lista principal '''
+                #multi.append(threading.Thread(target=api.get_tweetsThread2, args = (str_query, qt_multi, tweets)))
+
+                ''' Sem lock, cada thread tem sua própria lista...e ao final todas as listas são transformadas em uma
+                        grande lista através do sum(retornos,[]) 
+                        Descomentar: linha 300 e 332 que usam o array retornos'''
+                #multi.append(threading.Thread(target=api.get_tweetsThread3, args = (str_query, qt_multi, retornos[i])))
+
+                multi[-1].start()
+        
         else:
-            print("Process")
+            print("Execução utilizando Processos")
+            m = mp.Manager()
+            queue = m.Queue()
+
+            start = time.time()
             for i in range(0,n_multi):
-                multi.append(mp.Process(target=api.get_tweets, args = (str_query, qt_multi)))
+                ''' Utiliza FIFO com sincronização (Queue), todos os processos inserem na mesma fila ao fim
+                        das execuções dos processos a FIFO é transformada em uma lista '''
+                multi.append(mp.Process(target=api.get_tweetsProcess, args = (str_query, qt_multi, queue)))
+                multi[-1].start()
+        
         for m in multi:
-            m.start()
             m.join()
-        tweets = sum(retornos,[])
 
+        ''' Usar apenas se for usar o get_tweetsThread3 '''
+        #tweets = sum(retornos,[])
 
-	# picking positive tweets from tweets 
+    ''' Comentar o if se for analisar tempo  '''
+    if(control == 'P'):
+        while queue.qsize() != 0:
+            tweets.append(queue.get())
+
+    end = time.time()
+    print("#######")
+    print("A aplicação demorou {} segundos para executar e analisar {} tweets".format(end - start, len(tweets)))
+    print("#######")
+    
+    # picking positive tweets from tweets 
     ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive'] 
 	# percentage of positive tweets 
     print("Positive tweets percentage: {} %".format(100*len(ptweets)/len(tweets))) 
@@ -182,9 +382,5 @@ def get_keys():
 if __name__ == "__main__": 
 	# calling main function
     get_keys()
-    start = time.time()
-    main() 
-    end = time.time()
-    print("#######")
-    print("A aplicação demorou {} segundos para tratar {} tweets".format(end - start, qt_tweets))
-    print("#######")
+    print("Executando para {} tweets.".format(qt_tweets))
+    main()
