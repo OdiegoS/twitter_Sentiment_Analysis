@@ -2,24 +2,12 @@
 
 import os
 import time
-import sentimentAnalysis_util
+import sentimentAnalysis_util as util
 
 import re 
 import tweepy 
 from tweepy import OAuthHandler 
 from textblob import TextBlob 
-
-import pickle
-import numpy as np
-
-from sklearn import cross_validation
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_selection import SelectPercentile, f_classif
-from sklearn.naive_bayes import GaussianNB
-
-from sklearn.feature_extraction.text import CountVectorizer
-
-global features_trainG, labels_trainG, analiser
 
 str_query = 'Donald Trump'
 qt_tweets = 10
@@ -54,7 +42,8 @@ class TwitterClient(object):
 		Utility function to clean tweet text by removing links, special characters 
 		using simple regex statements. 
 		'''
-		return ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t]) |(\w+:\/\/\S+)", " ", tweet).split()) 
+		temp = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t]) |(\w+:\/\/\S+)", " ", tweet).split()) 
+		return util.cleanTweet2(temp)
 
 	def get_tweets(self, query, qt_tweets = 10): 
 		''' 
@@ -64,7 +53,7 @@ class TwitterClient(object):
 		tweets = [] 
 		last_id = -1
 		try:
-			while len(tweets) <= qt_tweets:
+			while len(tweets) < qt_tweets:
 				count = (qt_tweets - len(tweets)) if (qt_tweets - len(tweets)) < 100 else 100
 				# call twitter api to fetch tweets 
 				fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
@@ -81,9 +70,7 @@ class TwitterClient(object):
 					# saving text of tweet 
 					parsed_tweet['text'] = tweet.text 
 					# saving sentiment of tweet 
-					#parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
-					textT = tirarStopWords(tweet.text)
-					parsed_tweet['sentiment'] = sentimentalAnalysis([textT]) #funcao recebe um array de string com os tweets, por enquanto só tá recebendo 1, mas pode ser mais de um por vez
+					parsed_tweet['sentiment'] = util.sentimentalAnalysis(self.clean_tweet(tweet.text)) #funcao recebe um array de string com os tweets, por enquanto só tá recebendo 1, mas pode ser mais de um por vez
 
 					# appending parsed tweet to tweets list 
 					if tweet.retweet_count > 0: 
@@ -100,70 +87,11 @@ class TwitterClient(object):
 			# print error (if any) 
 			print("Error : " + str(e)) 
 
-
-
-# função que tira as stopwords do texto e retorna o texto
-
-def tirarStopWords(tweet):
-	#Separar texto em palavras e tirar os q estão no arquivo de stopword
-	return tweet
-
-
-def prepareTrainData():
-	global features_trainG, labels_trainG
-	words_filePos = 'train/positiveText'
-	with open(words_filePos, "r") as f:
-		contentP = f.readlines()
-	contentP = [x.strip() for x in contentP]	
-	
-	words_fileNeg = 'train/negativeText'
-	with open(words_fileNeg, "r") as f:
-		contentN = f.readlines()
-	contentN = [x.strip() for x in contentN]
-	
-	total = 4000
-						   
-	features_train = contentP[:total] + contentN[:total]
-	labels_train = [1 if i < total else -1 for i in range(total*2)]
-	
-	features_trainG, labels_trainG = features_train, labels_train
-
-	vectorizer = TfidfVectorizer()
-	features_train_transformed = vectorizer.fit_transform(features_train)
-	selector = SelectPercentile(f_classif, percentile=1)
-	selector.fit(features_train_transformed, labels_train)
-	features_train_transformed = selector.transform(features_train_transformed).toarray()
-	
-	classifier = GaussianNB()
-	
-	classifier.fit(features_train_transformed, labels_train)
-	
-	return classifier
-
-# Recebe o tweet no forma array de str depois de pre processado
-def sentimentalAnalysis(tweet):
-	global analiser
-	vectorizer = TfidfVectorizer()
-	features_train_transformed = vectorizer.fit_transform(features_trainG)
-	features_test_transformed  = vectorizer.transform(tweet)
-	
-	selector = SelectPercentile(f_classif, percentile=1)
-	selector.fit(features_train_transformed, labels_trainG)
-	x  = selector.transform(features_test_transformed).toarray()
-	
-	labels_predict = analiser.predict(x)
-	
-	labels_analysis = ['positive' if item == 1 else 'negative' for item in labels_predict] 
-	
-	#retornando a analise de um tweet
-	return labels_analysis[0] 
-
 def main(): 
-	
-	#Treinando dataset
-	global analiser
-	analiser = prepareTrainData()
-	
+	global qt_tweets
+
+	util.load_classifier()
+
 	# creating object of TwitterClient Class 
 	api = TwitterClient() 
 	
