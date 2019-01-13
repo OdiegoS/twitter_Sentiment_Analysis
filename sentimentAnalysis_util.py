@@ -81,8 +81,20 @@ def prepareTrainData():
 	
 	classifier.fit(features_train_transformed, labels_train)
 	
+	with open('classifier.pkl', 'wb') as file:
+		pickle.dump(classifier, file)   
+	with open('classifier_var.pkl', 'wb') as file:
+		pickle.dump([features_trainG, labels_trainG], file)   
+
 	return classifier
 
 def load_classifier():
-    global analiser
-    analiser = prepareTrainData()
+    global analiser, features_trainG, labels_trainG
+    if (not os.path.isfile("classifier.pkl") ):
+        print("Treinando...")
+        analiser = prepareTrainData()
+    else:
+        with open('classifier.pkl', 'rb') as file:
+            print("Carregando classificador...")
+            analiser = pickle.load(file)
+            features_trainG, labels_trainG = pickle.load(open('classifier_var.pkl', 'rb'))
