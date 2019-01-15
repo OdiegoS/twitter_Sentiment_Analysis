@@ -17,7 +17,7 @@ from textblob import TextBlob
 #################################################
 control = "N" # T thread , P processo, N normal
 str_query = 'Donald Trump'
-qt_tweets = 10
+qt_tweets = 1000
 n_multi = 2
 #################################################
 qt_multi = qt_tweets / n_multi
@@ -115,49 +115,6 @@ class TwitterClient(object):
 			# print error (if any)
             print("Error : " + str(e)) 
             
-    #Com lock: uma mesma lista para todas as threads, cada thread irá colocar seus resultados direto na lista principal
-    #com isso não é necessário dividir uma quantidade para cada thread.
-    def get_tweetsThread(self, query, qt_tweets, tweetsTemp):
-        global var_lock
-        ''' 
-		Main function to fetch tweets and parse them. 
-		'''
-        last_id = -1
-        try:
-            while len(tweetsTemp) < qt_tweets:
-                count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
-                # call twitter api to fetch tweets
-                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
-                
-                if not fetched_tweets:
-                    break
-                last_id = fetched_tweets[-1].id
-                # parsing tweets one by one
-                for tweet in fetched_tweets: 
-					# empty dictionary to store required params of a tweet
-                    parsed_tweet = {} 
-
-					# saving text of tweet
-                    parsed_tweet['text'] = tweet.text 
-					# saving sentiment of tweet
-                    parsed_tweet['sentiment'] = self.get_tweet_sentiment(tweet.text) 
-
-					# appending parsed tweet to tweets list
-                    if tweet.retweet_count > 0: 
-                        # if tweet has retweets, ensure that it is appended only once
-                        if parsed_tweet not in tweetsTemp:
-                            var_lock.acquire()
-                            tweetsTemp.append(parsed_tweet) 
-                            var_lock.release()
-                    else:
-                        var_lock.acquire()
-                        tweetsTemp.append(parsed_tweet) 
-                        var_lock.release()            
-
-        except tweepy.TweepError as e: 
-			# print error (if any)
-            print("Error : " + str(e)) 
-
     #Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária e ao final
     #adquire o lock para jogar na lista principal de uma só vez
     def get_tweetsThread2(self, query, qt_tweets, tweets):
@@ -243,21 +200,23 @@ class TwitterClient(object):
 
     # Utiliza FIFO com sincronização (Queue), todos os processos inserem na mesma fila
     # ao fim das execuções dos processos a FIFO é transformada em uma lista
-    def get_tweetsProcess(self, query, qt_tweets, queue):
+    def get_tweetsProcess(self, query, qt_tweets, queue, last_id):
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
         tweetsTemp = []
-        last_id = -1
         try:
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
-                fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
+                id = last_id.get()-1
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(id))
                 
                 if not fetched_tweets:
+                    last_id.put(id)
                     break
-                last_id = fetched_tweets[-1].id
+                last_id.put(fetched_tweets[-1].id)
+
                 # parsing tweets one by one
                 for tweet in fetched_tweets: 
 					# empty dictionary to store required params of a tweet
@@ -302,13 +261,9 @@ def main():
 
             start = time.time()
             for i in range(0,n_multi):
-                ''' Com lock: uma mesma lista para todas as threads, cada thread irá colocar seus resultados
-                        direto na lista principal  com isso não é necessário dividir uma quantidade para cada thread. '''
-                multi.append(threading.Thread(target=api.get_tweetsThread, args = (str_query, qt_tweets, tweets)))
-
                 ''' Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária
                         e ao final adquire o lock para jogar na lista principal '''
-                #multi.append(threading.Thread(target=api.get_tweetsThread2, args = (str_query, qt_multi, tweets)))
+                multi.append(threading.Thread(target=api.get_tweetsThread2, args = (str_query, qt_multi, tweets)))
 
                 ''' Sem lock, cada thread tem sua própria lista...e ao final todas as listas são transformadas em uma
                         grande lista através do sum(retornos,[]) 
@@ -321,12 +276,13 @@ def main():
             print("Execução utilizando Processos")
             m = mp.Manager()
             queue = m.Queue()
-
+            last_id = m.Queue()
+            last_id.put(-1)
             start = time.time()
             for i in range(0,n_multi):
                 ''' Utiliza FIFO com sincronização (Queue), todos os processos inserem na mesma fila ao fim
                         das execuções dos processos a FIFO é transformada em uma lista '''
-                multi.append(mp.Process(target=api.get_tweetsProcess, args = (str_query, qt_multi, queue)))
+                multi.append(mp.Process(target=api.get_tweetsProcess, args = (str_query, qt_multi, queue, last_id)))
                 multi[-1].start()
         
         for m in multi:

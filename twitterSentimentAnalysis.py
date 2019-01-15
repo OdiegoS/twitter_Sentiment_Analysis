@@ -7,7 +7,6 @@ import sentimentAnalysis_util as util
 import re 
 import tweepy 
 from tweepy import OAuthHandler 
-from textblob import TextBlob 
 
 str_query = 'Donald Trump'
 qt_tweets = 10

@@ -93,8 +93,10 @@ def load_classifier():
     if (not os.path.isfile("classifier.pkl") ):
         print("Treinando...")
         analiser = prepareTrainData()
+        print("Cabou treino...")
     else:
         with open('classifier.pkl', 'rb') as file:
             print("Carregando classificador...")
             analiser = pickle.load(file)
             features_trainG, labels_trainG = pickle.load(open('classifier_var.pkl', 'rb'))
+            print("Carregou...")
