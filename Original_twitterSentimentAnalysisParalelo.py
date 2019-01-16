@@ -24,6 +24,7 @@ qt_multi = qt_tweets / n_multi
 
 if(control == 'T'):
     var_lock = threading.Lock()
+    var_lock2 = threading.Lock()
 
 last_id = -1
 # keys and tokens from the Twitter Dev Console
@@ -119,7 +120,7 @@ class TwitterClient(object):
     #Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária e ao final
     #adquire o lock para jogar na lista principal de uma só vez
     def get_tweetsThread2(self, query, qt_tweets, tweets):
-        global var_lock, last_id
+        global var_lock, var_lock2, last_id
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
@@ -156,9 +157,9 @@ class TwitterClient(object):
                     else:
                         tweetsTemp.append(parsed_tweet) 
 
-            var_lock.acquire()
+            var_lock2.acquire()
             tweets.extend(tweetsTemp)
-            var_lock.release()
+            var_lock2.release()
 
         except tweepy.TweepError as e: 
 			# print error (if any)
