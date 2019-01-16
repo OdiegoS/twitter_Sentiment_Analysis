@@ -129,14 +129,14 @@ class TwitterClient(object):
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
-		var_lock.acquire()
+                var_lock.acquire()
                 fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
                 
                 if not fetched_tweets:
-		    var_lock.release()
+                    var_lock.release()
                     break
                 last_id = fetched_tweets[-1].id
-		var_lock.release()
+                var_lock.release()
                 # parsing tweets one by one
                 for tweet in fetched_tweets: 
 					# empty dictionary to store required params of a tweet
@@ -166,7 +166,7 @@ class TwitterClient(object):
 
     # Sem lock, cada thread tem sua própria lista
     def get_tweetsThread3(self, query, qt_tweets, tweetsTemp):
-	global var_lock, last_id
+        global var_lock, last_id
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
@@ -174,14 +174,14 @@ class TwitterClient(object):
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
-		var_lock.acquire()
+                var_lock.acquire()
                 fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
                 
                 if not fetched_tweets:
-		    var_lock.release()
+                    var_lock.release()
                     break
                 last_id = fetched_tweets[-1].id
-		var_lock.release()
+                var_lock.release()
                 # parsing tweets one by one
                 for tweet in fetched_tweets: 
 					# empty dictionary to store required params of a tweet
@@ -262,7 +262,7 @@ def main():
     
         if control == 'T':
             print("Execução utilizando Threads")
-	    last_id = -1
+            last_id = -1
             ''' Usar apenas se for usar o get_tweetsThread3 '''
             #retornos = [[] for i in range(n_multi)]
 
