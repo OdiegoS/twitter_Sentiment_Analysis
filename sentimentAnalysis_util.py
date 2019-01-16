@@ -18,6 +18,8 @@ from sklearn.feature_extraction.text import CountVectorizer
 features_trainG = None
 labels_trainG = None
 analiser = None
+vectorizer = TfidfVectorizer()
+selector = SelectPercentile(f_classif, percentile=1)
 stopWordss = ["a","able","about","across","after","all","almost","also","am","among","an","and","any","are","as","at","be","because","been","but","by","can","cannot","could","dear","did","do","does","either","else","ever","every","for","from","get","got","had","has","have","he","her","hers","him","his","how","however","i","if","in","into","is","it","its","just","least","let","like","likely","may","me","might","most","must","my","neither","no","nor","not","of","off","often","on","only","or","other","our","own","rather","said","say","says","she","should","since","so","some","than","that","the","their","them","then","there","these","they","this","tis","to","too","twas","us","wants","was","we","were","what","when","where","which","while","who","whom","why","will","with","would","yet","you","your","ain't","aren't","can't","could've","couldn't","didn't","doesn't","don't","hasn't","he'd","he'll","he's","how'd","how'll","how's","i'd","i'll","i'm","i've","isn't","it's","might've","mightn't","must've","mustn't","shan't","she'd","she'll","she's","should've","shouldn't","that'll","that's","there's","they'd","they'll","they're","they've","wasn't","we'd","we'll","we're","weren't","what'd","what's","when'd","when'll","when's","where'd","where'll","where's","who'd","who'll","who's","why'd","why'll","why's","won't","would've","wouldn't","you'd","you'll","you're","you've"]
 
 def isStopWord(word):
@@ -37,14 +39,9 @@ def cleanTweet3 (tweet, conj):
 
 # Recebe o tweet no forma array de str depois de pre processado
 def sentimentalAnalysis(tweet):
-    global analiser, features_trainG
+    global analiser, vectorizer, selector
 
-    vectorizer = TfidfVectorizer()
-    features_train_transformed = vectorizer.fit_transform(features_trainG)
     features_test_transformed  = vectorizer.transform([tweet])
-		
-    selector = SelectPercentile(f_classif, percentile=1)
-    selector.fit(features_train_transformed, labels_trainG)
     x  = selector.transform(features_test_transformed).toarray()
 	
     labels_predict = analiser.predict(x)
@@ -89,7 +86,7 @@ def prepareTrainData():
 	return classifier
 
 def load_classifier():
-    global analiser, features_trainG, labels_trainG
+    global analiser, features_trainG, labels_trainG, vectorizer, selector
     if (not os.path.isfile("classifier.pkl") ):
         print("Treinando...")
         analiser = prepareTrainData()
@@ -100,3 +97,5 @@ def load_classifier():
             analiser = pickle.load(file)
             features_trainG, labels_trainG = pickle.load(open('classifier_var.pkl', 'rb'))
             print("Carregou...")
+    features_train_transformed = vectorizer.fit_transform(features_trainG)	
+    selector.fit(features_train_transformed, labels_trainG)
