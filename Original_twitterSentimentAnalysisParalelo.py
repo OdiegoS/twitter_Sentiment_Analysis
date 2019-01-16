@@ -25,6 +25,7 @@ qt_multi = qt_tweets / n_multi
 if(control == 'T'):
     var_lock = threading.Lock()
 
+last_id = -1
 # keys and tokens from the Twitter Dev Console
 consumer_key = ''
 consumer_secret = ''
@@ -118,22 +119,24 @@ class TwitterClient(object):
     #Com lock: uma mesma lista para todas as threads, cada thread irá armazenar em uma lista temporária e ao final
     #adquire o lock para jogar na lista principal de uma só vez
     def get_tweetsThread2(self, query, qt_tweets, tweets):
-        global var_lock
+        global var_lock, last_id
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
 		# empty list to store parsed tweets
         tweetsTemp = []
-        last_id = -1
         try:
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
+		var_lock.acquire()
                 fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
                 
                 if not fetched_tweets:
+		    var_lock.release()
                     break
                 last_id = fetched_tweets[-1].id
+		var_lock.release()
                 # parsing tweets one by one
                 for tweet in fetched_tweets: 
 					# empty dictionary to store required params of a tweet
@@ -163,19 +166,22 @@ class TwitterClient(object):
 
     # Sem lock, cada thread tem sua própria lista
     def get_tweetsThread3(self, query, qt_tweets, tweetsTemp):
+	global var_lock, last_id
         ''' 
 		Main function to fetch tweets and parse them. 
 		'''
-        last_id = -1
         try:
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
+		var_lock.acquire()
                 fetched_tweets = self.api.search(q=query, count=count, max_id=str(last_id - 1))
                 
                 if not fetched_tweets:
+		    var_lock.release()
                     break
                 last_id = fetched_tweets[-1].id
+		var_lock.release()
                 # parsing tweets one by one
                 for tweet in fetched_tweets: 
 					# empty dictionary to store required params of a tweet
@@ -209,8 +215,8 @@ class TwitterClient(object):
             while len(tweetsTemp) < qt_tweets:
                 count = (qt_tweets - len(tweetsTemp)) if (qt_tweets - len(tweetsTemp)) < 100 else 100
                 # call twitter api to fetch tweets
-                id = last_id.get()-1
-                fetched_tweets = self.api.search(q=query, count=count, max_id=str(id))
+                id = last_id.get()
+                fetched_tweets = self.api.search(q=query, count=count, max_id=str(id-1))
                 
                 if not fetched_tweets:
                     last_id.put(id)
@@ -242,6 +248,7 @@ class TwitterClient(object):
             print("Error : " + str(e)) 
 
 def main(): 
+    global last_id
     # creating object of TwitterClient Class 
     api = TwitterClient()
     tweets = []
@@ -255,7 +262,7 @@ def main():
     
         if control == 'T':
             print("Execução utilizando Threads")
-
+	    last_id = -1
             ''' Usar apenas se for usar o get_tweetsThread3 '''
             #retornos = [[] for i in range(n_multi)]
 
