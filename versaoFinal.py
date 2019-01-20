@@ -3,12 +3,6 @@
 import os
 import time
 import threading
-import queue as q
-
-if(os.name == 'posix'):
-    import multiprocessing as mp
-else:
-    import multiprocess as mp
 
 import re 
 import tweepy 
@@ -169,5 +163,5 @@ def get_keys():
 if __name__ == "__main__": 
 	# calling main function
     get_keys()
-    print("Executando para {} tweets.".format(qt_tweets))
+    print("Executando para {} buscas.".format(len(str_query)))
     main()
