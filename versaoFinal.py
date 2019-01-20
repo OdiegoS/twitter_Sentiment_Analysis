@@ -10,8 +10,8 @@ from tweepy import OAuthHandler
 from textblob import TextBlob 
 
 #################################################
-str_query = ['Donald Trump', 'The Legend of Zelda', 'Science', 'Violence', 'Love', 'Final Fantasy']
-qt_tweets = 400
+str_query = ['Donal Trump', 'The Legend of Zelda']#['Donald Trump', 'The Legend of Zelda', 'Science', 'Violence', 'Love', 'Final Fantasy']
+qt_tweets = 20
 #################################################
 
 # keys and tokens from the Twitter Dev Console
@@ -124,19 +124,17 @@ def main():
         print("---------")
         print("Query {} com {} tweets".format(str_query[c], len(query)))
         c += 1
-
-    '''
-    # picking positive tweets from tweets 
-    ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive'] 
-	# percentage of positive tweets 
-    print("Positive tweets percentage: {} %".format(100*len(ptweets)/len(tweets))) 
-	# picking negative tweets from tweets 
-    ntweets = [tweet for tweet in tweets if tweet['sentiment'] == 'negative'] 
-	# percentage of negative tweets 
-    print("Negative tweets percentage: {} %".format(100*len(ntweets)/len(tweets))) 
-	# percentage of neutral tweets 
-    print("Neutral tweets percentage: {} % ".format(100*(len(tweets) - len(ntweets) - len(ptweets))/len(tweets))) 
-    
+        # picking positive tweets from tweets 
+        ptweets = [tweet for tweet in query if tweet['sentiment'] == 'positive'] 
+        # percentage of positive tweets 
+        print("Positive tweets percentage: {} %".format(100*len(ptweets)/len(query))) 
+        # picking negative tweets from tweets 
+        ntweets = [tweet for tweet in query if tweet['sentiment'] == 'negative'] 
+        # percentage of negative tweets 
+        print("Negative tweets percentage: {} %".format(100*len(ntweets)/len(query))) 
+        # percentage of neutral tweets 
+        print("Neutral tweets percentage: {} % ".format(100*(len(query) - len(ntweets) - len(ptweets))/len(query))) 
+    ''' 
 	# printing first 5 positive tweets 
     print("\n\nPositive tweets:") 
     for tweet in ptweets[:10]: 
