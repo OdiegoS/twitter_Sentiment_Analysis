@@ -93,9 +93,14 @@ def main():
 
 	# creating object of TwitterClient Class 
 	api = TwitterClient() 
-	
+	print("Iniciando...")
+	start = time.time()
 	# calling function to get tweets 
 	tweets = api.get_tweets(query = str_query, qt_tweets = qt_tweets) 
+	end = time.time()
+	print("#######")
+	print("A aplicação demorou {} segundos para tratar {} tweets".format(end - start, qt_tweets))
+	print("#######")
 
 	# picking positive tweets from tweets 
 	ptweets = [tweet for tweet in tweets if tweet['sentiment'] == 'positive'] 
@@ -107,7 +112,7 @@ def main():
 	print("Negative tweets percentage: {} %".format(100*len(ntweets)/len(tweets))) 
 	# percentage of neutral tweets 
 	print("Neutral tweets percentage: {} % ".format(100*(len(tweets) - len(ntweets) - len(ptweets))/len(tweets))) 
-
+	'''
 	# printing first 5 positive tweets 
 	print("\n\nPositive tweets:") 
 	for tweet in ptweets[:10]: 
@@ -117,6 +122,7 @@ def main():
 	print("\n\nNegative tweets:") 
 	for tweet in ntweets[:10]: 
 		print(tweet['text']) 
+	'''
 
 def get_keys():
 	global consumer_key, consumer_secret, access_token, access_token_secret
@@ -133,9 +139,4 @@ def get_keys():
 if __name__ == "__main__": 
 	# calling main function
     get_keys()
-    start = time.time()
-    main() 
-    end = time.time()
-    print("#######")
-    print("A aplicação demorou {} segundos para tratar {} tweets".format(end - start, qt_tweets))
-    print("#######")
+    main()
