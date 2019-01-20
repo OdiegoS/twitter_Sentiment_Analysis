@@ -16,9 +16,9 @@ from tweepy import OAuthHandler
 from textblob import TextBlob 
 
 #################################################
-control = "P" # T thread , P processo, N normal
-str_query = ['Donald Trump', 'The Legend of Zelda', 'Science']
-qt_tweets = 300
+control = "T" # T thread , P processo, N normal
+str_query = ['Donald Trump', 'The Legend of Zelda', 'Science', 'Violence', 'Love', 'Final Fantasy']
+qt_tweets = 400
 #################################################
 
 # keys and tokens from the Twitter Dev Console
@@ -284,20 +284,16 @@ def main():
     '''
     end = time.time()
     print("#######")
-    print("A aplicação demorou {} segundos para pesquisar e analisar {} query".format(end - start, len(tweets)))
+    print("A aplicação demorou {} segundos para pesquisar e analisar {} query".format(end - start, qt_tweets))
     print("#######")
 
-    '''
+    
     c = 0
     for query in tweets:
         print("---------")
-        print("Começando query {}".format(str_query[c]))
+        print("Query {} com {} tweets".format(str_query[c], len(query)))
         c += 1
-        print("")
-        for i in range(0,len(query)):
-            print(query[i])
-        print("----------")
-    '''
+    
     
     '''
     # picking positive tweets from tweets 
